@@ -14,34 +14,44 @@
 
 #include<stdio.h>
 
+struct line {
+	int cusNum;
+	int time;
+	int remain;
+} typedef line;
+
+struct cus {
+	int time;
+	int numA;
+	int numB;
+} typedef cus;
+
 void func();
 
-int T, N, M, K, A, B;
-int a[20] = { 0 }, b[20] = { 0 }, c[1000] = { 0 }; // 접수 창구, 정비 창구, 손님 시간
-int alist[20][2] = { 0 }, blist[20][2] = { 0 }; // 손님 번호, 창구 남은 시간
-int num1[1000] = { 0 }, num2[1000] = { 0 }; // 손님 이용 창구 번호
+line a[20] = { 0 }, b[20] = { 0 };
+cus c[1000] = { 0 };
+int T, N, M, K, A, B, end;
 
 int main(void) {
 
-	int t = 0, i, j, cnt = 0;
+	int i, j, t = 0, sum;
 
 	scanf("%d", &T);
 
 	while (t < T) {
-
 		t++;
+		sum = 0; end = 0;
 
 		scanf("%d %d %d %d %d", &N, &M, &K, &A, &B);
 
-		for (i = 0; i < N; i++)	scanf("%d", &a[i]);
-		for (i = 0; i < M; i++) scanf("%d", &b[i]);
-		for (i = 0; i < K; i++) scanf("%d", &c[i]);
+		for (i = 0; i < N; i++) scanf("%d", &a[i].time);
+		for (i = 0; i < M; i++) scanf("%d", &b[i].time);
+		for (i = 0; i < K; i++) scanf("%d", &c[i].time);
 
 		func();
 
-		for (i = 0; i < K; i++) if (num1[i] == A && num2[i] == B) cnt += i;
-
-		printf("#%d %d\n", t, cnt);
+		for (i = 0; i < K; i++) if (c[i].numA == A && c[i].numB == B) sum += i;
+		printf("#%d %d\n", t, sum);
 
 	} // while()
 
@@ -49,71 +59,67 @@ int main(void) {
 } // main()
 
 void func() {
-
-	int i, j, n1, n2;
-	int num = 0, wa = 0, wb = 0, waiting[1000] = { 0 }; // 손님번호 0부터
-	int end = 0;
+	
+	int i = 0, j, k;
+	int fi, fj;
+	int wa = 0, wb = 0;
+	int waiting[1000];
 
 	while (1) {
+		// 접수 창구 정리 - 끝난 사람 정리
+		for (fi = 0; fi < N; fi++) { // 접수 창구 번호가 작은 순서
+			if (a[fi].cusNum != 0 && a[fi].remain == 0) { // 접수 끝난 사람
+				waiting[wb] = a[fi].cusNum; // 대기열에 손님 번호 저장
+				wb++;
+				a[fi].cusNum = 0;
+			}
+		} // for(fi)
 
-		n2 = 0; // 창구 번호
-
-		// 정비 창구 정리
-		for (i = wa; i < wb; i++) { // 기다리는 손님들 중에
-			while (1) {
-				if (blist[n2][1] == 0) { // 빈 창구가 있으면
-					blist[n2][1] = b[n2]; // 시간 할당
-					blist[n2][0] = waiting[wa] + 1; // 손님 번호 저장
-					num2[waiting[wa]] = n2; // 이용 창구 번호 저장
-					wa++;
+		// 접수 창구 정리 - 대기 중인 사람 배정
+		j = 0;
+		while (c[i].time == 0) {
+			while (j < N) {
+				if (a[j].remain == 0) {
+					a[j].cusNum = i + 1; // 손님 번호 저장
+					a[j].remain = a[j].time; // 시간 할당
+					c[i].numA = j; // 창구 번호 저장
+					i++; // 손님 빠져나감
 					break;
-				} // if()
-				n2++;
-				if (n2 == M) break; // 빈 창구가 하나도 없을 경우
+				}
+				j++;
 			} // while()
-			if (n2 == M) break; // 빈 창구가 하나도 없을 경우
+			if (j == N) break; // 빈 창구가 없을 경우
 		}
 
-		n1 = 0; // 창구 번호
-
-		// 접수 창구 정리
-		for (i = num; i < K; i++) { // 손님들 중에
-			if (c[i] != 0) break; // 대기하는 손님이 없으면
-			else { // 대기하는 손님이 있으면
-				while (1) {
-					if (alist[n1][1] == 0) { // 낮은 창구 번호부터 자리가 있으면
-						alist[n1][1] = a[n1]; // 시간 할당
-						alist[n1][0] = i + 1; // 손님 번호 저장
-						num1[num] = n1;
-						num++;
-						break;
-					} // if()
-					n1++;
-					if (n1 == N) break; // 빈 창구가 하나도 없을 경우
-				} // while()
-			} // if()
-			if (n1 == N) break; // 빈 창구가 하나도 없을 경우
-		} // for(i)
-
-		// 시간 흐르게 하기
-		for (i = num; i < K; i++) c[i]--;
-		for (i = 0; i < N; i++) { // 접수 창구 정리
-			if (alist[i][1] - 1 == 0) { // 끝났을 경우
-				waiting[wb] = alist[i][0] - 1; // 대기열로 보내기
-				alist[i][0] = 0;
-				wb++;
-			}
-			if (alist[i][1] != 0) alist[i][1]--; // 시간 감소
-		} // for(i)
-		for (i = 0; i < M; i++) { // 정비 창구 정리
-			if (blist[i][1] - 1 == 0) { // 끝났을 경우
-				blist[i][0] = 0;
+		// 정비 창구 정리 - 끝난 사람 정리
+		for (fi = 0; fi < M; fi++) {
+			if (b[fi].cusNum != 0 && b[fi].remain == 0) {
+				b[fi].cusNum = 0;
 				end++;
+				if (end == K) return;
 			}
-			if (blist[i][1] != 0) blist[i][1]--; // 시간 감소
-		} // for(i)
+		}
 
-		if (end == K) break;
+		// 정비 창구 정리 - 대기 중인 사람 배정
+		k = 0;
+		while (wa < wb) {
+			while (k < M) {
+				if (b[k].remain == 0) {
+					b[k].cusNum = waiting[wa]; // 손님 번호 저장
+					b[k].remain = b[k].time; // 시간 할당
+					c[waiting[wa]].numB = k; // 창구 번호 저장
+					wa++; // 웨이팅 빠져나감
+					break;
+				}
+				k++;
+			} // while()
+			if (k == M) break; // 빈 창구가 없을 경우
+		}
+
+		// 시간 흐르기
+		for (fi = 0; fi < N; fi++) a[fi].remain--;
+		for (fi = 0; fi < M; fi++) b[fi].remain--;
+		for (fi = 0; fi < K; fi++) c[fi].time--;
+
 	} // while()
-
 } // func()
